@@ -1,0 +1,14 @@
+data_dir    = "{{ .DragoDataDir }}"
+bind_addr   = "0.0.0.0"
+ui          = false
+
+server {
+    enabled = false
+}
+
+client {
+    enabled                     = true
+    servers                     = "{{ .DragoServers }}"
+    token                       = "{{ .DragoToken }}"
+    wireguard_path              = "/usr/local/bin/wireguard"
+}

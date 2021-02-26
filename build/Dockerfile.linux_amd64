@@ -1,0 +1,11 @@
+FROM alpine:3.10
+
+RUN apk add -U wireguard-tools
+
+COPY ./build/linux_amd64/seashell ./seashell
+
+RUN ./seashell --version
+
+RUN mkdir -p /opt/seashell/client
+
+ENTRYPOINT ./seashell agent --config=./config.hcl

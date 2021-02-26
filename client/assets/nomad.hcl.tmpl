@@ -1,0 +1,36 @@
+datacenter = "global"
+region     = "global"
+data_dir   = "$data_directory" 
+name       = "$node_name"
+bind_addr  =  "{{ GetInterfaceIP \"$interface\" }}"
+
+ports {
+  http = 4646
+  rpc  = 4647
+  serf = 4648
+}
+
+server {
+  enabled = false
+}
+
+client {
+    enabled = true
+    
+    host_network "private" {
+      interface = "$interface"
+    }
+    
+    host_network "public" {
+      interface = "wlan0"
+    }
+    meta {
+        "environment" = "$environment"
+    }
+}
+
+plugin "docker" {
+    config {
+        allow_caps = ["ALL"]
+    }
+}
