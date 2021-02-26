@@ -1,55 +1,13 @@
-<h1 align="center">
-    Seashell
-<br></h1>
+# agent
 
-<h5 align="center">
-The Seashell CLI
-</h5>
+The Seashell Agent
 
 ------------------
 
-<p align="center">
-  <a href="https://goreportcard.com/report/github.com/seashell/agent"><img src="https://goreportcard.com/badge/github.com/seashell/agent" alt="Go report: A+"></a>
-  <img alt="GitHub" src="https://img.shields.io/github/license/seashell/seashell">
-</p>
-
-TODO: description
+Agent meant for executing on edge devices and synchronizing their configurations with those defined in the Seashell Platform.
 
 ## Requirements
 - Golang 1.16+
-- Systemd
-- Nomad 1.0.0+
-- Consul 1.9.0+
-
-## Build
-
-System requirements:
-- Golang 1.14+
-- Node 10.17.0+
-- yarn 1.12.3+
-
-```
-$ go generate
-$ go build
-```
-
-Alternatively, you can build with `make`, for example:
-
-```bash
-$ make dev
-```
-
-To see help on building with make, run:
-
-```bash
-$ make help
-```
-
-Build for all architectures with
-
-```bash
-make release
-```
 
 ## Usage
 
@@ -71,8 +29,6 @@ An example configuration can be found in `/dist/seashell.hcl`
 
 - `data_dir` :
 
-- `advertise_addr` : 
-
 ## API
 
 The Seashell agent exposes a simple REST API that allows for simple system information queries.
@@ -88,15 +44,11 @@ $ curl -X GET localhost:5345/status
 ```
 
 #### Coming soon  :clock1:
-- Etcd as a storage backend
-- RPC API for clients nodes to interact with the server
-- Fine-grained authorization
-- CLI improvements
-
+`TODO`
 
 ## Contributing
 - Fork it
-- Download your fork (git clone https://github.com/your_username/seashell && cd seashell)
+- Download your fork (git clone https://github.com/your_username/agent && cd agent)
 - Create your feature branch (git checkout -b my-new-feature)
 - Make changes and stage them (git add .)
 - Commit your changes (git commit -m 'Add some feature')
@@ -105,8 +57,7 @@ $ curl -X GET localhost:5345/status
 
 
 ## Roadmap
-- [ ] Website
 - [ ] Code coverage
 
 ## License
-Seashell is released under the Apache 2.0 license. See LICENSE.txt
+The Seashell Agent is released under the Apache 2.0 license. See LICENSE.txt

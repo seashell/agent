@@ -1,3 +1,7 @@
+# This configuration file is just an example.
+# In order to obtain valid credentials, you'll 
+# need to create a Seashell account.
+
 data_dir  = "/tmp/seashell"
 
 bind_addr = "0.0.0.0"
