@@ -23,14 +23,11 @@ type Config struct {
 	Logger log.Logger
 
 	OrganizationID string
-
-	ProjectID string
-
-	DeviceBatchID string
-
-	DeviceID string
-
-	DeviceSecret string
+	ProjectID      string
+	DeviceBatchID  string
+	DeviceID       string
+	DeviceSecret   string
+	DeviceRemoteID string
 
 	// StateDir is the directory used by the client to store its state.
 	StateDir string
@@ -88,6 +85,9 @@ func (c *Config) Merge(b *Config) *Config {
 	}
 	if b.DeviceSecret != "" {
 		result.DeviceSecret = b.DeviceSecret
+	}
+	if b.DeviceRemoteID != "" {
+		result.DeviceRemoteID = b.DeviceRemoteID
 	}
 	if b.APIAddr != "" {
 		result.APIAddr = b.APIAddr

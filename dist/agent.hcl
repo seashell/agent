@@ -12,4 +12,5 @@ client {
     device_batch_id = "0c496f5e-861c-496f-ae99-d73b703f4a46"
     device_id = "0af3d1e8-2b39-4f50-9622-526003b51ffb"
     device_secret = "nq3DhWYsM3jMXHGIS8S5"
+    device_remote_id = "device-xyz"
 }

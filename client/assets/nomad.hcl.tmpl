@@ -6,11 +6,12 @@
 # |                                                                |
 # |----------------------------------------------------------------|
 
-datacenter = "global"
 region     = "global"
-data_dir   = "{{ .DataDir }}" 
+datacenter = "global"
+
 name       = "{{ .Name }}"
-bind_addr  = "{{ .InterfaceAddress }}"
+data_dir   = "{{ .DataDir }}" 
+bind_addr  = {{"\"{{ GetPrivateInterfaces | include \"name\" \"^dg-\" | limit 1| attr \"address\" }}\""}}
 
 ports {
   http = 4646
@@ -22,15 +23,19 @@ server {
   enabled = false
 }
 
+server_join {
+  retry_join = "{{ .RetryJoin }}"
+}
+
 client {
     enabled = true
     
     host_network "private" {
-      interface = "{{ .InterfaceName }}"
+      interface = {{"\"{{ GetPrivateInterfaces | include \"name\" \"^dg-\" | limit 1 | attr \"name\" }}\""}}
     }
     
     host_network "public" {
-      interface = "{{ .PublicInterfaceName }}"
+      interface = {{"\"{{ GetPublicInterfaces | limit 1}}\""}}
     }
 
     meta {

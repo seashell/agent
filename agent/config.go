@@ -96,6 +96,9 @@ type ClientConfig struct {
 	// SecretID
 	SecretID string `hcl:"device_secret,optional"`
 
+	// RemoteID
+	RemoteID string `hcl:"device_remote_id,optional"`
+
 	// Meta contains metadata about the client node
 	Meta map[string]string `hcl:"meta,optional"`
 
@@ -134,6 +137,9 @@ func (c *ClientConfig) Merge(b *ClientConfig) *ClientConfig {
 	}
 	if b.SecretID != "" {
 		result.SecretID = b.SecretID
+	}
+	if b.RemoteID != "" {
+		result.RemoteID = b.RemoteID
 	}
 	if b.SyncIntervalSeconds != 0 {
 		result.SyncIntervalSeconds = b.SyncIntervalSeconds

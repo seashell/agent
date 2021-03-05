@@ -22,12 +22,10 @@ func (c *DragoConfiguration) Hash() uint64 {
 
 // NomadConfiguration :
 type NomadConfiguration struct {
-	Name                string
-	DataDir             string
-	InterfaceName       string
-	InterfaceAddress    string
-	PublicInterfaceName string
-	Meta                map[string]string
+	Name      string
+	DataDir   string
+	RetryJoin string
+	Meta      map[string]string
 }
 
 // Hash returns a unique hash of the struct
@@ -41,11 +39,10 @@ func (c *NomadConfiguration) Hash() uint64 {
 
 // ConsulConfiguration :
 type ConsulConfiguration struct {
-	Name        string
-	DataDir     string
-	BindAddress string
-	RetryJoin   string
-	Meta        map[string]string
+	Name      string
+	DataDir   string
+	RetryJoin string
+	Meta      map[string]string
 }
 
 // Hash returns a unique hash of the struct

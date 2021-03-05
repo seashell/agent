@@ -256,7 +256,7 @@ func (c *Client) reconcileConfiguration(desired *structs.Configuration) {
 func (c *Client) reconcileDragoConfiguration(config *structs.Configuration) error {
 
 	desired := &structs.DragoConfiguration{
-		Name:    "",
+		Name:    c.config.DeviceRemoteID,
 		DataDir: path.Join(c.config.StateDir, "drago"),
 		Servers: config.DragoIPAddresses,
 		Secret:  config.DragoSecret,
@@ -276,8 +276,9 @@ func (c *Client) reconcileDragoConfiguration(config *structs.Configuration) erro
 			return err
 		}
 
-		err = c.state.SetDragoConfiguration(desired)
-		if err != nil {
+		// We only persist configurations that were successfully rendered so as
+		// to ensure the state in the DB is synced with the configuration files.
+		if err := c.state.SetDragoConfiguration(desired); err != nil {
 			return err
 		}
 
@@ -292,12 +293,10 @@ func (c *Client) reconcileDragoConfiguration(config *structs.Configuration) erro
 func (c *Client) reconcileNomadConfiguration(config *structs.Configuration) error {
 
 	desired := &structs.NomadConfiguration{
-		Name:                "",
-		DataDir:             path.Join(c.config.StateDir, "nomad"),
-		InterfaceName:       "",      // TODO: Get through Drago CLI, local API client, or netlink
-		InterfaceAddress:    "",      // TODO: Get through Drago CLI, local API client, or netlink
-		PublicInterfaceName: "wlan0", // TODO: Get through netlink
-		Meta:                config.Labels,
+		Name:      c.config.DeviceRemoteID,
+		DataDir:   path.Join(c.config.StateDir, "nomad"),
+		RetryJoin: "", // TODO: get from Drago and, in the future, replace using go-connect
+		Meta:      config.Labels,
 	}
 
 	current, err := c.state.NomadConfiguration()
@@ -313,8 +312,9 @@ func (c *Client) reconcileNomadConfiguration(config *structs.Configuration) erro
 			return err
 		}
 
-		err = c.state.SetNomadConfiguration(desired)
-		if err != nil {
+		// We only persist configurations that were successfully rendered so as
+		// to ensure the state in the DB is synced with the configuration files.
+		if err := c.state.SetNomadConfiguration(desired); err != nil {
 			return err
 		}
 
@@ -329,11 +329,10 @@ func (c *Client) reconcileNomadConfiguration(config *structs.Configuration) erro
 func (c *Client) reconcileConsulConfiguration(config *structs.Configuration) error {
 
 	desired := &structs.ConsulConfiguration{
-		Name:        "",
-		DataDir:     path.Join(c.config.StateDir, "consul"),
-		BindAddress: "",
-		RetryJoin:   "",
-		Meta:        config.Labels,
+		Name:      c.config.DeviceRemoteID,
+		DataDir:   path.Join(c.config.StateDir, "consul"),
+		RetryJoin: "", // TODO: get from Drago and, in the future, replace using go-connect
+		Meta:      config.Labels,
 	}
 
 	current, err := c.state.ConsulConfiguration()
@@ -349,8 +348,7 @@ func (c *Client) reconcileConsulConfiguration(config *structs.Configuration) err
 			return err
 		}
 
-		err = c.state.SetConsulConfiguration(desired)
-		if err != nil {
+		if err := c.state.SetConsulConfiguration(desired); err != nil {
 			return err
 		}
 
@@ -376,6 +374,7 @@ func (c *Client) watchConfiguration(ch chan *structs.Configuration) {
 			ProjectID:      c.config.ProjectID,
 			BatchID:        c.config.DeviceBatchID,
 			DeviceID:       c.config.DeviceID,
+			DeviceRemoteID: c.config.DeviceRemoteID,
 		}
 
 		req.QueryOptions.AuthToken = c.Device().Token

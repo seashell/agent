@@ -6,7 +6,7 @@
 # |                                                                |
 # |----------------------------------------------------------------|
 
-data_dir = "{{ .DataDir }}"
+data_dir  = "{{ .DataDir }}"
 bind_addr = "0.0.0.0"
 
 server {
@@ -16,6 +16,6 @@ server {
 client {
     enabled = true
     servers = {{ .Servers }}
-    secret = "{{ .Secret }}"
+    secret  = "{{ .Secret }}"
     wireguard_path = "/usr/local/bin/wireguard"
 }

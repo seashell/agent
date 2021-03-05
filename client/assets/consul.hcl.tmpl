@@ -6,16 +6,20 @@
 # |                                                                |
 # |----------------------------------------------------------------|
 
-raft_protocol   = 3
-server          = false
 datacenter      = "global"
+
+server          = false
+raft_protocol   = 3
+
 node_name       = "{{ .Name }}"
 data_dir        = "{{ .DataDir }}"
-bind_addr       = "{{ .BindAddress }}"
+client_addr     = "0.0.0.0"
+bind_addr       = {{"\"{{ GetPrivateInterfaces | include \"name\" \"^dg-\" | attr \"address\" }}\""}}
+
 retry_join      = "{{ .RetryJoin }}"
+
 node_meta {
     {{ range $k, $v := .Meta -}}
     {{ $k }} = "{{ $v }}"
     {{ end -}}
 }
-client_addr     = "0.0.0.0"
