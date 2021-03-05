@@ -10,7 +10,7 @@ import (
 const (
 	defaultLogLevel  = "DEBUG"
 	defaultStateDir  = "/tmp/seashell"
-	defaultOutputDir = "/etc/seashell"
+	defaultOutputDir = "/etc/seashell.d"
 )
 
 // Config : Seashell client configuration
