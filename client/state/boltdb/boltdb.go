@@ -11,8 +11,10 @@ import (
 )
 
 var (
-	rootBucketName         = []byte("/")
-	configurationObjectKey = []byte("configuration")
+	configurationBucketName      = []byte("configuration")
+	dragoConfigurationObjectKey  = []byte("drago")
+	nomadConfigurationObjectKey  = []byte("nomad")
+	consulConfigurationObjectKey = []byte("consul")
 )
 
 // StateRepository ...
@@ -39,7 +41,7 @@ func NewStateRepository(path string, logger log.Logger) *StateRepository {
 
 	err = db.Update(func(tx *bolt.Tx) error {
 
-		_, err := tx.CreateBucketIfNotExists(rootBucketName)
+		_, err := tx.CreateBucketIfNotExists(configurationBucketName)
 		if err != nil {
 			return err
 		}
@@ -65,17 +67,17 @@ func (r *StateRepository) Transaction(ctx context.Context) state.Transaction {
 	return &Transaction{}
 }
 
-// Configuration :
-func (r *StateRepository) Configuration() (*structs.Configuration, error) {
+// DragoConfiguration :
+func (r *StateRepository) DragoConfiguration() (*structs.DragoConfiguration, error) {
 
-	var config *structs.Configuration
+	var config *structs.DragoConfiguration
 
 	err := r.db.View(func(tx *bolt.Tx) error {
-		b := tx.Bucket(rootBucketName)
+		b := tx.Bucket(configurationBucketName)
 
-		data := b.Get(configurationObjectKey)
+		data := b.Get(dragoConfigurationObjectKey)
 		if data != nil {
-			config = &structs.Configuration{}
+			config = &structs.DragoConfiguration{}
 			if err := decode(data, config); err != nil {
 				return err
 			}
@@ -87,11 +89,73 @@ func (r *StateRepository) Configuration() (*structs.Configuration, error) {
 	return config, err
 }
 
-// SetConfiguration :
-func (r *StateRepository) SetConfiguration(c *structs.Configuration) error {
+// SetDragoConfiguration :
+func (r *StateRepository) SetDragoConfiguration(c *structs.DragoConfiguration) error {
 	err := r.db.Update(func(tx *bolt.Tx) error {
-		b := tx.Bucket(rootBucketName)
-		return b.Put(configurationObjectKey, encode(c))
+		b := tx.Bucket(configurationBucketName)
+		return b.Put(dragoConfigurationObjectKey, encode(c))
+	})
+	return err
+}
+
+// NomadConfiguration :
+func (r *StateRepository) NomadConfiguration() (*structs.NomadConfiguration, error) {
+
+	var config *structs.NomadConfiguration
+
+	err := r.db.View(func(tx *bolt.Tx) error {
+		b := tx.Bucket(configurationBucketName)
+
+		data := b.Get(nomadConfigurationObjectKey)
+		if data != nil {
+			config = &structs.NomadConfiguration{}
+			if err := decode(data, config); err != nil {
+				return err
+			}
+		}
+
+		return nil
+	})
+
+	return config, err
+}
+
+// SetNomadConfiguration :
+func (r *StateRepository) SetNomadConfiguration(c *structs.NomadConfiguration) error {
+	err := r.db.Update(func(tx *bolt.Tx) error {
+		b := tx.Bucket(configurationBucketName)
+		return b.Put(nomadConfigurationObjectKey, encode(c))
+	})
+	return err
+}
+
+// ConsulConfiguration :
+func (r *StateRepository) ConsulConfiguration() (*structs.ConsulConfiguration, error) {
+
+	var config *structs.ConsulConfiguration
+
+	err := r.db.View(func(tx *bolt.Tx) error {
+		b := tx.Bucket(configurationBucketName)
+
+		data := b.Get(consulConfigurationObjectKey)
+		if data != nil {
+			config = &structs.ConsulConfiguration{}
+			if err := decode(data, config); err != nil {
+				return err
+			}
+		}
+
+		return nil
+	})
+
+	return config, err
+}
+
+// SetConsulConfiguration :
+func (r *StateRepository) SetConsulConfiguration(c *structs.ConsulConfiguration) error {
+	err := r.db.Update(func(tx *bolt.Tx) error {
+		b := tx.Bucket(configurationBucketName)
+		return b.Put(consulConfigurationObjectKey, encode(c))
 	})
 	return err
 }

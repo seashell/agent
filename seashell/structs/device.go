@@ -3,6 +3,8 @@ package structs
 import (
 	"fmt"
 	"time"
+
+	"github.com/mitchellh/hashstructure/v2"
 )
 
 const (
@@ -137,4 +139,14 @@ type DeviceSyncResponse struct {
 type Configuration struct {
 	Labels           map[string]string `json:"labels"`
 	DragoIPAddresses []string          `json:"dragoIpAddresses"`
+	DragoSecret      string            `json:"dragoSecret"`
+}
+
+// Hash returns a unique hash of the struct
+func (c *Configuration) Hash() uint64 {
+	hash, err := hashstructure.Hash(c, hashstructure.FormatV2, nil)
+	if err != nil {
+		panic(err)
+	}
+	return hash
 }

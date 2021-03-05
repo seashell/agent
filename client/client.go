@@ -10,10 +10,8 @@ import (
 	"path"
 	"path/filepath"
 	"sync"
-	"text/template"
 	"time"
 
-	dbus "github.com/coreos/go-systemd/v22/dbus"
 	api "github.com/seashell/agent/api"
 	state "github.com/seashell/agent/client/state"
 	boltdb "github.com/seashell/agent/client/state/boltdb"
@@ -48,9 +46,6 @@ type Client struct {
 
 	state state.Repository
 
-	dbusLock sync.Mutex
-	dbus     *dbus.Conn
-
 	device     *structs.Device
 	deviceLock sync.Mutex
 
@@ -78,6 +73,11 @@ func New(config *Config) (*Client, error) {
 		return nil, fmt.Errorf("error setting up client state: %v", err)
 	}
 
+	err = c.setupOutputDir()
+	if err != nil {
+		return nil, fmt.Errorf("error setting up output dir: %v", err)
+	}
+
 	err = c.setupDevice()
 	if err != nil {
 		return nil, fmt.Errorf("error setting up device: %v", err)
@@ -87,13 +87,6 @@ func New(config *Config) (*Client, error) {
 	if err != nil {
 		return nil, fmt.Errorf("error setting up api client: %v", err)
 	}
-
-	// TODO: setup systemd connection/client
-	dbus, err := dbus.New()
-	if err != nil {
-		return nil, fmt.Errorf("error setting up dbus connection: %v", err)
-	}
-	c.dbus = dbus
 
 	// Try to get a token
 	c.tryToGetTokenUntilSuccessful()
@@ -139,7 +132,6 @@ func (c *Client) setupDevice() error {
 	c.device.ID = c.config.DeviceID
 	c.device.Secret = c.config.DeviceSecret
 
-	c.device.Name = c.config.Name
 	c.device.Meta = c.config.Meta
 
 	c.device.Status = structs.DeviceStatusInit
@@ -180,14 +172,26 @@ func (c *Client) setupState() error {
 
 	c.state = repo
 
-	// Initialize configuration object in the repo
-	config, err := c.state.Configuration()
-	if err == nil && config == nil {
-		c.state.SetConfiguration(&structs.Configuration{
-			Labels:           map[string]string{},
-			DragoIPAddresses: []string{},
-		})
+	return nil
+}
+
+func (c *Client) setupOutputDir() error {
+
+	// Ensure the output dir exists. If it was not was specified,
+	// create a temporary directory to store the client output.
+	if c.config.OutputDir != "" {
+		if err := os.MkdirAll(c.config.OutputDir, 0700); err != nil {
+			return fmt.Errorf("failed to create output dir: %s", err)
+		}
+	} else {
+		tmp, err := c.createTempDir("SeashellClientOutput")
+		if err != nil {
+			return fmt.Errorf("failed to create tmp dir for storing output: %s", err)
+		}
+		c.config.OutputDir = tmp
 	}
+
+	c.logger.Infof("using output directory %s", c.config.OutputDir)
 
 	return nil
 }
@@ -195,7 +199,7 @@ func (c *Client) setupState() error {
 func (c *Client) setupAPIClient() error {
 
 	apiClient, err := api.NewClient(&api.Config{
-		Address: "localhost:8123",
+		Address: c.config.APIAddr,
 	})
 	if err != nil {
 		return err
@@ -222,12 +226,7 @@ func (c *Client) run() {
 				return
 			}
 
-			current, err := c.state.Configuration()
-			if err != nil {
-				c.logger.Errorf("could not read configuration from state repository: %v", err)
-			}
-
-			c.reconcileConfiguration(current, desired)
+			c.reconcileConfiguration(desired)
 
 			c.shutdownLock.Unlock()
 		case <-c.shutdownCh:
@@ -236,32 +235,131 @@ func (c *Client) run() {
 	}
 }
 
-func (c *Client) reconcileConfiguration(current, desired *structs.Configuration) {
+func (c *Client) reconcileConfiguration(desired *structs.Configuration) {
 
-	c.logger.Debugf("applying configuration...")
+	c.logger.Debugf("reconciliation started...")
 
-	c.dbusLock.Lock()
-	defer c.dbusLock.Unlock()
-
-	// TODO: Render templates for nomad, consul, and drago config files
-
-	_, err := template.New("drago-config").Parse(dragoTemplateString)
-	if err != nil {
-		c.logger.Errorf("error parsing drago config template")
+	if err := c.reconcileDragoConfiguration(desired); err != nil {
+		c.logger.Warnf("error reconciling drago configuration : %v", err)
 	}
 
-	// dragoConfig := &structs.DragoConfiguration{}
-	// err = dt.Execute(os.Stdout, dragoConfig)
-	// f, err := os.Create("/etc/seashell/drago/drago.hcl")
-	// if err != nil {
-	//	c.logger.Errorf("error creating drago config file")
-	//}
+	if err := c.reconcileNomadConfiguration(desired); err != nil {
+		c.logger.Warnf("error reconciling nomad configuration : %v", err)
+	}
 
-	// err = tmpl.Execute(tmpl, dragoConfig)
-	// if err != nil {
-	//	c.logger.Errorf("error rendering drago config template")
-	// }
+	if err := c.reconcileConsulConfiguration(desired); err != nil {
+		c.logger.Warnf("error reconciling consul configuration : %v", err)
+	}
 
+}
+
+func (c *Client) reconcileDragoConfiguration(config *structs.Configuration) error {
+
+	desired := &structs.DragoConfiguration{
+		Name:    "",
+		DataDir: path.Join(c.config.StateDir, "drago"),
+		Servers: config.DragoIPAddresses,
+		Secret:  config.DragoSecret,
+		Meta:    config.Labels,
+	}
+
+	current, err := c.state.DragoConfiguration()
+	if err != nil {
+		c.logger.Errorf("could not read drago configuration: %v", err)
+	}
+
+	if current.Hash() != desired.Hash() {
+
+		c.logger.Debugf("changes detected in drago configuration. rendering template and persisting to repository...")
+
+		if err := renderTemplateToFile(dragoTemplateString, path.Join(c.config.OutputDir, "drago.hcl"), desired); err != nil {
+			return err
+		}
+
+		err = c.state.SetDragoConfiguration(desired)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	}
+
+	c.logger.Debugf("no changes detected in drago configuration. skipping reconciliation...")
+
+	return nil
+}
+
+func (c *Client) reconcileNomadConfiguration(config *structs.Configuration) error {
+
+	desired := &structs.NomadConfiguration{
+		Name:                "",
+		DataDir:             path.Join(c.config.StateDir, "nomad"),
+		InterfaceName:       "",      // TODO: Get through Drago CLI, local API client, or netlink
+		InterfaceAddress:    "",      // TODO: Get through Drago CLI, local API client, or netlink
+		PublicInterfaceName: "wlan0", // TODO: Get through netlink
+		Meta:                config.Labels,
+	}
+
+	current, err := c.state.NomadConfiguration()
+	if err != nil {
+		c.logger.Errorf("could not read nomad configuration: %v", err)
+	}
+
+	if current.Hash() != desired.Hash() {
+
+		c.logger.Debugf("changes detected in nomad configuration. rendering template and persisting to repository...")
+
+		if err := renderTemplateToFile(nomadTemplateString, path.Join(c.config.OutputDir, "nomad.hcl"), desired); err != nil {
+			return err
+		}
+
+		err = c.state.SetNomadConfiguration(desired)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	}
+
+	c.logger.Debugf("no changes detected in nomad configuration. skipping reconciliation...")
+
+	return nil
+}
+
+func (c *Client) reconcileConsulConfiguration(config *structs.Configuration) error {
+
+	desired := &structs.ConsulConfiguration{
+		Name:        "",
+		DataDir:     path.Join(c.config.StateDir, "consul"),
+		BindAddress: "",
+		RetryJoin:   "",
+		Meta:        config.Labels,
+	}
+
+	current, err := c.state.ConsulConfiguration()
+	if err != nil {
+		c.logger.Errorf("could not read consul configuration: %v", err)
+	}
+
+	if current.Hash() != desired.Hash() {
+
+		c.logger.Debugf("changes detected in consul configuration. rendering template and persisting to repository...")
+
+		if err := renderTemplateToFile(consulTemplateString, path.Join(c.config.OutputDir, "consul.hcl"), desired); err != nil {
+			return err
+		}
+
+		err = c.state.SetConsulConfiguration(desired)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	}
+
+	c.logger.Debugf("no changes detected in consul configuration. skipping reconciliation...")
+
+	return nil
 }
 
 func (c *Client) watchConfiguration(ch chan *structs.Configuration) {
@@ -312,6 +410,11 @@ func (c *Client) watchConfiguration(ch chan *structs.Configuration) {
 func (c *Client) tryToGetTokenUntilSuccessful() {
 
 	for {
+		select {
+		case <-c.shutdownCh:
+			return
+		default:
+		}
 
 		var err error
 		var resp *structs.DeviceTokenResponse

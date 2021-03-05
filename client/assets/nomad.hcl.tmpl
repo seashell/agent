@@ -1,8 +1,16 @@
+# |----------------------------------------------------------------|
+# |                                                                |
+# |           Automatically generated configuration file           |
+# |                                                                |
+# |                     *** Do not edit ***                        |
+# |                                                                |
+# |----------------------------------------------------------------|
+
 datacenter = "global"
 region     = "global"
-data_dir   = "$data_directory" 
-name       = "$node_name"
-bind_addr  =  "{{ GetInterfaceIP \"$interface\" }}"
+data_dir   = "{{ .DataDir }}" 
+name       = "{{ .Name }}"
+bind_addr  = "{{ .InterfaceAddress }}"
 
 ports {
   http = 4646
@@ -18,15 +26,18 @@ client {
     enabled = true
     
     host_network "private" {
-      interface = "$interface"
+      interface = "{{ .InterfaceName }}"
     }
     
     host_network "public" {
-      interface = "wlan0"
+      interface = "{{ .PublicInterfaceName }}"
     }
+
     meta {
-        "environment" = "$environment"
-    }
+      {{ range $k, $v := .Meta -}}
+        {{ $k }} = "{{ $v }}"
+      {{ end -}}
+  }
 }
 
 plugin "docker" {

@@ -2,39 +2,35 @@ package agent
 
 import (
 	"os"
+	"path"
 	"time"
 
 	"github.com/hashicorp/hcl/v2/hclsimple"
 	"github.com/seashell/agent/version"
 )
 
+const (
+	defaultDataDir = "/tmp/seashell"
+	defaultAPIAddr = "https://api.seashell.sh"
+)
+
 // Config contains configurations for the Seashell agent
 type Config struct {
-	// UI defines whether or not Seashell's web UI will be served
-	// by the agent
-	UI bool `hcl:"ui,optional"`
 
-	// Name is used to identify individual agents
+	// APIAddr contains the address of the API
+	APIAddr string `hcl:"api_addr,optional"`
+
+	// Name is used by the agent to identify itself
 	Name string `hcl:"name,optional"`
 
-	// DataDir is the directory to store our state in
+	// DataDir is the directory used by the agent to store its state
 	DataDir string `hcl:"data_dir,optional"`
-
-	// BindAddr is the address on which all of Seashell's services will
-	// be bound. If not specified, this defaults to 127.0.0.1.
-	BindAddr string `hcl:"bind_addr,optional"`
 
 	// LogLevel is the level of the logs to put out
 	LogLevel string `hcl:"log_level,optional"`
 
-	// Ports is used to control the network ports we bind to.
-	Ports *Ports `hcl:"ports,block"`
-
 	// Client contains all client-specific configurations
 	Client *ClientConfig `hcl:"client,block"`
-
-	// DevMode is set by the --dev CLI flag.
-	DevMode bool
 
 	// Version information (set at compilation time)
 	Version *version.VersionInfo
@@ -49,31 +45,17 @@ func (c *Config) Merge(b *Config) *Config {
 
 	result := *c
 
-	if b.UI {
-		result.UI = true
-	}
-	if b.LogLevel != "" {
-		result.LogLevel = b.LogLevel
-	}
-	if b.Name != "" {
-		result.Name = b.Name
-	}
 	if b.DataDir != "" {
 		result.DataDir = b.DataDir
 	}
-	if b.BindAddr != "" {
-		result.BindAddr = b.BindAddr
+	if b.APIAddr != "" {
+		result.APIAddr = b.APIAddr
 	}
 	if b.Version != nil {
 		result.Version = b.Version
 	}
-
-	// Apply the ports config
-	if result.Ports == nil && b.Ports != nil {
-		ports := *b.Ports
-		result.Ports = &ports
-	} else if b.Ports != nil {
-		result.Ports = result.Ports.Merge(b.Ports)
+	if b.LogLevel != "" {
+		result.LogLevel = b.LogLevel
 	}
 
 	// Apply the client config
@@ -90,8 +72,14 @@ func (c *Config) Merge(b *Config) *Config {
 // ClientConfig contains configurations for the Seashell client
 type ClientConfig struct {
 
-	// StateDir is the directory where the client state will be kep
+	// APIAddr is the address of the remote API
+	APIAddr string
+
+	// StateDir is the directory used by the client to store its state
 	StateDir string `hcl:"state_dir,optional"`
+
+	// OutputDir is the directory to which the client renders the configuration
+	OutputDir string `hcl:"output_dir,optional"`
 
 	// OrganizationID
 	OrganizationID string `hcl:"organization_id,optional"`
@@ -120,8 +108,15 @@ type ClientConfig struct {
 
 // Merge merges two ClientConfig structs, returning the result
 func (c *ClientConfig) Merge(b *ClientConfig) *ClientConfig {
+
 	result := *c
 
+	if b.APIAddr != "" {
+		result.APIAddr = b.APIAddr
+	}
+	if b.OutputDir != "" {
+		result.OutputDir = b.OutputDir
+	}
 	if b.StateDir != "" {
 		result.StateDir = b.StateDir
 	}
@@ -150,42 +145,18 @@ func (c *ClientConfig) Merge(b *ClientConfig) *ClientConfig {
 	return &result
 }
 
-// Ports encapsulates the various ports we bind to for network services. If any
-// are not specified then the defaults are used instead.
-type Ports struct {
-	HTTP int `hcl:"http"`
-	RPC  int `hcl:"rpc"`
-}
-
-// Merge merges two Ports structs, returning the result
-func (c *Ports) Merge(b *Ports) *Ports {
-	result := *c
-
-	if b.HTTP != 0 {
-		result.HTTP = b.HTTP
-	}
-	if b.RPC != 0 {
-		result.RPC = b.RPC
-	}
-
-	return &result
-}
-
 // DefaultConfig returns a Config struct populated with sane defaults
 func DefaultConfig() *Config {
 	return &Config{
-		LogLevel: "DEBUG",
-		UI:       true,
 		Name:     "",
-		DataDir:  "/tmp/seashell",
-		BindAddr: "0.0.0.0",
-		Ports: &Ports{
-			HTTP: 8123,
-			RPC:  8124,
-		},
+		APIAddr:  defaultAPIAddr,
+		LogLevel: "DEBUG",
+		DataDir:  defaultDataDir,
 		Client: &ClientConfig{
-			Meta:                map[string]string{},
+			APIAddr:             defaultAPIAddr,
+			OutputDir:           path.Join(defaultDataDir, "output"),
 			SyncIntervalSeconds: 5,
+			Meta:                map[string]string{},
 		},
 		Version: version.GetVersion(),
 	}
@@ -195,7 +166,6 @@ func DefaultConfig() *Config {
 // also initialized to a non-nil empty value.
 func EmptyConfig() *Config {
 	return &Config{
-		Ports:  &Ports{},
 		Client: &ClientConfig{},
 	}
 }

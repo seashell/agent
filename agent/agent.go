@@ -3,6 +3,7 @@ package agent
 import (
 	"errors"
 	"fmt"
+	"path"
 	"sync"
 
 	client "github.com/seashell/agent/client"
@@ -90,6 +91,7 @@ func (a *Agent) setupClient() error {
 // agent.Config struct and which can be used to initialize
 // a Seashell client
 func (a *Agent) clientConfig() (*client.Config, error) {
+
 	c := client.DefaultConfig()
 
 	c.OrganizationID = a.config.Client.OrganizationID
@@ -98,8 +100,18 @@ func (a *Agent) clientConfig() (*client.Config, error) {
 	c.DeviceID = a.config.Client.DeviceID
 	c.DeviceSecret = a.config.Client.SecretID
 
-	c.StateDir = a.config.DataDir
+	c.APIAddr = a.config.APIAddr
+	c.StateDir = a.config.Client.StateDir
+	c.OutputDir = a.config.Client.OutputDir
 	c.Meta = a.config.Client.Meta
+
+	if c.StateDir == "" {
+		c.StateDir = a.config.DataDir
+	}
+
+	if c.OutputDir == "" {
+		c.OutputDir = path.Join(a.config.DataDir, "output")
+	}
 
 	c.LogLevel = a.config.LogLevel
 	c.Logger = a.logger

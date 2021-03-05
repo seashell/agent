@@ -8,24 +8,16 @@ import (
 )
 
 const (
-	defaultLogLevel = "DEBUG"
-	defaultStateDir = "/etc/seashell"
+	defaultLogLevel  = "DEBUG"
+	defaultStateDir  = "/tmp/seashell"
+	defaultOutputDir = "/etc/seashell"
 )
 
 // Config : Seashell client configuration
 type Config struct {
 
-	// DevMode indicates whether the client is running in development mode.
-	DevMode bool
-
-	// Name is used to specify the name of the client node.
-	Name string
-
-	// Version is the version of the Seashell client.
-	Version *version.VersionInfo
-
-	// LogLevel is the level at which the client should output logs.
-	LogLevel string
+	// APIAddr is the address of the remote API used by the client to fetch configuration
+	APIAddr string
 
 	//Logger is the logger the client will use to log.
 	Logger log.Logger
@@ -40,25 +32,35 @@ type Config struct {
 
 	DeviceSecret string
 
-	// StateDir is the directory to store our state in.
+	// StateDir is the directory used by the client to store its state.
 	StateDir string
+
+	// OutputDir is the directory to which the client will render its output.
+	OutputDir string
 
 	// ReconcileInterval is the interval between two reconciliation cycles.
 	ReconcileInterval time.Duration
 
 	// Meta contains client metadata
 	Meta map[string]string
+
+	// Version is the version of the Seashell client.
+	Version *version.VersionInfo
+
+	// LogLevel is the level at which the client should output logs.
+	LogLevel string
 }
 
 // DefaultConfig returns the default configuration.
 func DefaultConfig() *Config {
 	return &Config{
-		Name:              "",
-		Version:           version.GetVersion(),
+		APIAddr:           "",
 		LogLevel:          defaultLogLevel,
 		StateDir:          defaultStateDir,
+		OutputDir:         defaultOutputDir,
 		ReconcileInterval: 5 * time.Second,
 		Meta:              map[string]string{},
+		Version:           version.GetVersion(),
 	}
 }
 
@@ -66,9 +68,6 @@ func DefaultConfig() *Config {
 func (c *Config) Merge(b *Config) *Config {
 	result := *c
 
-	if b.Name != "" {
-		result.Name = b.Name
-	}
 	if b.Logger != nil {
 		result.Logger = b.Logger
 	}
@@ -90,8 +89,14 @@ func (c *Config) Merge(b *Config) *Config {
 	if b.DeviceSecret != "" {
 		result.DeviceSecret = b.DeviceSecret
 	}
+	if b.APIAddr != "" {
+		result.APIAddr = b.APIAddr
+	}
 	if b.StateDir != "" {
 		result.StateDir = b.StateDir
+	}
+	if b.OutputDir != "" {
+		result.OutputDir = b.OutputDir
 	}
 	if b.ReconcileInterval != 0 {
 		result.ReconcileInterval = b.ReconcileInterval

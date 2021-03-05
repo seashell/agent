@@ -21,6 +21,10 @@ type Repository interface {
 
 // ConfigurationRepository : Configuration repository interface
 type ConfigurationRepository interface {
-	Configuration() (*structs.Configuration, error)
-	SetConfiguration(*structs.Configuration) error
+	DragoConfiguration() (*structs.DragoConfiguration, error)
+	SetDragoConfiguration(*structs.DragoConfiguration) error
+	NomadConfiguration() (*structs.NomadConfiguration, error)
+	SetNomadConfiguration(*structs.NomadConfiguration) error
+	ConsulConfiguration() (*structs.ConsulConfiguration, error)
+	SetConsulConfiguration(*structs.ConsulConfiguration) error
 }

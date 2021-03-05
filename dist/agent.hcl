@@ -4,7 +4,7 @@
 
 data_dir  = "/tmp/seashell"
 
-bind_addr = "0.0.0.0"
+api_addr = "http://localhost:8123"
 
 client {
     organization_id = "f56c6f14-4136-4845-a2be-6bd72f599422"

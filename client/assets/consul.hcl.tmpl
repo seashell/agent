@@ -1,8 +1,21 @@
-data_dir        = "{{ ConsulDataDir }}"
-node_name       = "{{ ConsulNodeName }}"
-bind_addr       = "{{ ConsulBindAddress }}"
+# |----------------------------------------------------------------|
+# |                                                                |
+# |           Automatically generated configuration file           |
+# |                                                                |
+# |                     *** Do not edit ***                        |
+# |                                                                |
+# |----------------------------------------------------------------|
+
+raft_protocol   = 3
 server          = false
 datacenter      = "global"
-retry_join      = "{{ ConsulRetryJoin }}"
-raft_protocol   = 3
+node_name       = "{{ .Name }}"
+data_dir        = "{{ .DataDir }}"
+bind_addr       = "{{ .BindAddress }}"
+retry_join      = "{{ .RetryJoin }}"
+node_meta {
+    {{ range $k, $v := .Meta -}}
+    {{ $k }} = "{{ $v }}"
+    {{ end -}}
+}
 client_addr     = "0.0.0.0"

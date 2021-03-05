@@ -126,7 +126,7 @@ func (c *AgentCommand) parseFlags(flags *RootFlagSet, args []string) *agent.Conf
 	flags.StringVar(&config.LogLevel, "log-level", "", "")
 
 	// Client-only options
-	flags.StringVar(&config.Client.StateDir, "state-dir", "", "")
+	flags.StringVar(&config.Client.OutputDir, "output-dir", "", "")
 	flags.StringVar(&config.Client.DeviceID, "device-id", "", "")
 	flags.StringVar(&config.Client.SecretID, "secret-id", "", "")
 
@@ -148,6 +148,7 @@ func (c *AgentCommand) parseConfigFiles(paths ...string) *agent.Config {
 			err := hclsimple.DecodeFile(s, nil, config)
 			if err != nil {
 				c.UI.Error("Failed to load configuration: " + err.Error())
+				os.Exit(0)
 			}
 		}
 	} else {
@@ -236,25 +237,4 @@ Agent Options:
 // Prints an ASCII banner to the standard output
 func displayBanner() {
 	banner.Init(os.Stdout, true, true, strings.NewReader(agent.Banner))
-}
-
-func bindAddrsString(config *agent.Config) string {
-	http := fmt.Sprintf("%s:%d", config.BindAddr, config.Ports.HTTP)
-	rpc := fmt.Sprintf("%s:%d", config.BindAddr, config.Ports.RPC)
-	return fmt.Sprintf("HTTP: %s; RPC: %s", http, rpc)
-}
-
-func advertiseAddrsString(config *agent.Config) string {
-
-	http := fmt.Sprintf("%s:%d", config.BindAddr, config.Ports.HTTP)
-	//if config.AdvertiseAddrs.Peer != "" {
-	//	http = fmt.Sprintf("%s", config.AdvertiseAddrs.HTTP)
-	//}
-
-	rpc := fmt.Sprintf("%s:%d", config.BindAddr, config.Ports.RPC)
-	//if config.AdvertiseAddrs.HTTP != "" {
-	//	rpc = fmt.Sprintf("%s", config.AdvertiseAddrs.RPC)
-	//}
-
-	return fmt.Sprintf("HTTP: %s; RPC: %s", http, rpc)
 }
